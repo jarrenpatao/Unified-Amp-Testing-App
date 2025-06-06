@@ -3,9 +3,11 @@ import * as amplitude from '@amplitude/analytics-browser';
 import { Experiment } from '@amplitude/experiment-js-client';
 import { ExperimentConfig, ExperimentFlag, UserContext } from '../types/amplitude';
 
+type ExperimentClient = ReturnType<typeof Experiment.initialize>;
+
 export const useAmplitude = () => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [experiment, setExperiment] = useState<Experiment | null>(null);
+  const [experiment, setExperiment] = useState<ExperimentClient | null>(null);
   const [experimentConfig, setExperimentConfig] = useState<ExperimentConfig | null>(null);
   const [activeFlags, setActiveFlags] = useState<ExperimentFlag[]>([]);
 
@@ -33,7 +35,7 @@ export const useAmplitude = () => {
         debug: true,
         fallbackVariant: {},
         initialVariants: {},
-        source: 'amplitude-experiment-testing',
+        // source: 'amplitude-experiment-testing',
         serverUrl: config.serverUrl || 'https://api.lab.amplitude.com',
       });
 
@@ -60,7 +62,7 @@ export const useAmplitude = () => {
     }
   };
 
-  const fetchVariants = async (experimentClient: Experiment, flagKeys: string[]) => {
+  const fetchVariants = async (experimentClient: ExperimentClient, flagKeys: string[]) => {
     try {
       const variants = await experimentClient.all();
       const flags: ExperimentFlag[] = flagKeys.map(key => ({
@@ -70,10 +72,70 @@ export const useAmplitude = () => {
         metadata: variants[key]?.metadata,
       }));
       setActiveFlags(flags);
+      
+      // Track exposure events for each flag
+      flags.forEach(flag => {
+        trackExposure(flag.key, flag.variant);
+      });
+      
       return flags;
     } catch (error) {
       console.error('Failed to fetch variants:', error);
       return [];
+    }
+  };
+
+  const trackExposure = (flagKey: string, variant: string) => {
+    if (!isInitialized) return;
+    
+    amplitude.track('[Experiment] Exposure', {
+      flag_key: flagKey,
+      variant: variant,
+      timestamp: Date.now(),
+    });
+  };
+
+  const trackAssignment = (flagKey: string, variant: string, source: 'automatic' | 'manual' = 'automatic') => {
+    if (!isInitialized) return;
+    
+    amplitude.track('[Experiment] Assignment', {
+      flag_key: flagKey,
+      variant: variant,
+      source: source,
+      timestamp: Date.now(),
+    });
+  };
+
+  const assignVariant = async (flagKey: string, variant: 'control' | 'treatment') => {
+    if (!experiment || !experimentConfig) return false;
+
+    try {
+      // Manually set the variant
+      const updatedFlags = activeFlags.map(flag => 
+        flag.key === flagKey 
+          ? { ...flag, variant }
+          : flag
+      );
+      
+      // If the flag doesn't exist, add it
+      if (!updatedFlags.find(flag => flag.key === flagKey)) {
+        updatedFlags.push({
+          key: flagKey,
+          variant,
+          payload: variant === 'treatment' ? { theme: 'dark' } : { theme: 'light' },
+          metadata: { flagType: 'manual_assignment' }
+        });
+      }
+      
+      setActiveFlags(updatedFlags);
+      
+      // Track the assignment
+      trackAssignment(flagKey, variant, 'manual');
+      
+      return true;
+    } catch (error) {
+      console.error('Failed to assign variant:', error);
+      return false;
     }
   };
 
@@ -127,5 +189,8 @@ export const useAmplitude = () => {
     fetchVariants: () => experimentConfig && experiment ? fetchVariants(experiment, experimentConfig.flagKeys) : Promise.resolve([]),
     trackEvent,
     sendHttpEvent,
+    trackExposure,
+    trackAssignment,
+    assignVariant,
   };
 };

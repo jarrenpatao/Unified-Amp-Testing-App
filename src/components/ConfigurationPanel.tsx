@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { Settings, Key, User } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Settings, Key, User, RotateCcw } from 'lucide-react';
+import { useAmplitudeConfig } from '../hooks/useLocalStorage';
 
 interface ConfigurationPanelProps {
   onConfigUpdate: (config: { apiKey: string; userId: string; deviceId: string }) => void;
@@ -7,20 +8,29 @@ interface ConfigurationPanelProps {
 }
 
 const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ onConfigUpdate, isDarkTheme = false }) => {
-  const [config, setConfig] = useState({
-    apiKey: '',
-    userId: '',
-    deviceId: '',
-  });
+  const [savedConfig, setSavedConfig] = useAmplitudeConfig();
+  const [config, setConfig] = useState(savedConfig);
+
+  // Sync with saved config when it changes
+  useEffect(() => {
+    setConfig(savedConfig);
+  }, [savedConfig]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    setSavedConfig(config); // Save to local storage
     onConfigUpdate(config);
   };
 
   const handleChange = (field: keyof typeof config, value: string) => {
     const newConfig = { ...config, [field]: value };
     setConfig(newConfig);
+  };
+
+  const handleClearSavedData = () => {
+    const emptyConfig = { apiKey: '', userId: '', deviceId: '' };
+    setSavedConfig(emptyConfig);
+    setConfig(emptyConfig);
   };
 
   const textClasses = isDarkTheme ? 'text-gray-300' : 'text-gray-600';
@@ -31,9 +41,31 @@ const ConfigurationPanel: React.FC<ConfigurationPanelProps> = ({ onConfigUpdate,
 
   return (
     <>
-      <div className="flex items-center space-x-2 mb-4">
-        <Settings className={`h-5 w-5 ${textClasses}`} />
-        <h2 className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>Configuration</h2>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <Settings className={`h-5 w-5 ${textClasses}`} />
+          <h2 className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>Configuration</h2>
+          {(savedConfig.apiKey || savedConfig.userId || savedConfig.deviceId) && (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
+              Auto-filled
+            </span>
+          )}
+        </div>
+        {(savedConfig.apiKey || savedConfig.userId || savedConfig.deviceId) && (
+          <button
+            type="button"
+            onClick={handleClearSavedData}
+            className={`flex items-center space-x-1 px-2 py-1 text-xs rounded-md transition-colors ${
+              isDarkTheme 
+                ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+            title="Clear saved data"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>Clear</span>
+          </button>
+        )}
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">

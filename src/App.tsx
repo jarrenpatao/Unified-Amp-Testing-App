@@ -19,7 +19,10 @@ function App() {
     initializeExperiment,
     updateUserContext,
     fetchVariants,
-    sendHttpEvent 
+    sendHttpEvent,
+    trackExposure,
+    trackAssignment,
+    assignVariant
   } = useAmplitude();
   
   const [apiKey, setApiKey] = useState('');
@@ -61,7 +64,14 @@ function App() {
     setUserContext(newUserContext);
     
     // Initialize Amplitude
-    initializeAmplitude(config.apiKey, config.userId);
+    const success = initializeAmplitude(config.apiKey, config.userId);
+    
+    // Track initial exposure if initialization was successful
+    if (success) {
+      setTimeout(() => {
+        trackExposure('app_initialization', 'initialized');
+      }, 100);
+    }
   };
 
   const handleExperimentConfig = async (config: ExperimentConfig) => {
@@ -158,6 +168,32 @@ function App() {
     setTestResults([]);
   };
 
+  const handleAssignLightMode = async () => {
+    if (!experimentConfig?.flagKeys.length) {
+      alert('Please configure experiment flags first');
+      return;
+    }
+    
+    const themeFlag = experimentConfig.flagKeys.find(key => 
+      key.includes('theme') || key.includes('dark') || key.includes('color')
+    ) || experimentConfig.flagKeys[0];
+    
+    await assignVariant(themeFlag, 'control');
+  };
+
+  const handleAssignDarkMode = async () => {
+    if (!experimentConfig?.flagKeys.length) {
+      alert('Please configure experiment flags first');
+      return;
+    }
+    
+    const themeFlag = experimentConfig.flagKeys.find(key => 
+      key.includes('theme') || key.includes('dark') || key.includes('color')
+    ) || experimentConfig.flagKeys[0];
+    
+    await assignVariant(themeFlag, 'treatment');
+  };
+
   const themeClasses = isDarkTheme 
     ? 'min-h-screen bg-gray-900 text-white transition-colors duration-500'
     : 'min-h-screen bg-gray-50 text-gray-900 transition-colors duration-500';
@@ -173,11 +209,29 @@ function App() {
       <main className="max-w-7xl mx-auto px-6 py-8">
         {isDarkTheme && (
           <div className="mb-6 p-4 bg-purple-900 border border-purple-700 rounded-lg">
-            <div className="flex items-center space-x-2">
-              <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
-              <span className="text-purple-200 text-sm font-medium">
-                🌙 Dark theme active - triggered by user properties or experiment flags
-              </span>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
+                <span className="text-purple-200 text-sm font-medium">
+                  🌙 Dark theme active - triggered by user properties or experiment flags
+                </span>
+              </div>
+              <div className="text-xs text-purple-300">
+                {activeFlags.length > 0 && `Active flags: ${activeFlags.map(f => `${f.key}:${f.variant}`).join(', ')}`}
+              </div>
+            </div>
+          </div>
+        )}
+
+        {!isDarkTheme && activeFlags.length > 0 && (
+          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                <span className="text-blue-800 text-sm font-medium">
+                  ☀️ Light theme active - experiment flags: {activeFlags.map(f => `${f.key}:${f.variant}`).join(', ')}
+                </span>
+              </div>
             </div>
           </div>
         )}
@@ -198,6 +252,33 @@ function App() {
                     isDarkTheme={isDarkTheme}
                   />
                 </div>
+
+                {experiment && experimentConfig && (
+                  <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
+                    <div className="flex items-center space-x-2 mb-4">
+                      <span className="text-lg font-semibold">🎨 Theme Assignment CTAs</span>
+                    </div>
+                    <p className={`text-sm mb-4 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
+                      Manually assign variants to test theme changes. Treatment = Dark Mode, Control = Light Mode.
+                    </p>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <button
+                        onClick={handleAssignLightMode}
+                        className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors border"
+                      >
+                        <span>☀️</span>
+                        <span>Assign Light Mode (Control)</span>
+                      </button>
+                      <button
+                        onClick={handleAssignDarkMode}
+                        className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors border border-gray-600"
+                      >
+                        <span>🌙</span>
+                        <span>Assign Dark Mode (Treatment)</span>
+                      </button>
+                    </div>
+                  </div>
+                )}
                 
                 <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
                   <UserContextManager

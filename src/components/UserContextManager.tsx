@@ -5,6 +5,7 @@ import { UserContext } from '../types/amplitude';
 interface UserContextManagerProps {
   onUserContextUpdate: (context: UserContext) => void;
   currentContext: UserContext;
+  isDarkTheme?: boolean;
 }
 
 const UserContextManager: React.FC<UserContextManagerProps> = ({ 

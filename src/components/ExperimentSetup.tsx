@@ -1,6 +1,7 @@
-import React, { useState } from 'react';
-import { FlaskRound as Flask, Key, Globe, Flag } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { FlaskRound as Flask, Key, Globe, Flag, RotateCcw } from 'lucide-react';
 import { ExperimentConfig } from '../types/amplitude';
+import { useExperimentConfig } from '../hooks/useLocalStorage';
 
 interface ExperimentSetupProps {
   onExperimentConfig: (config: ExperimentConfig) => void;
@@ -9,19 +10,32 @@ interface ExperimentSetupProps {
 }
 
 const ExperimentSetup: React.FC<ExperimentSetupProps> = ({ onExperimentConfig, isConfigured, isDarkTheme = false }) => {
-  const [config, setConfig] = useState<ExperimentConfig>({
-    deploymentKey: '',
-    serverUrl: 'https://api.lab.amplitude.com',
-    flagKeys: [],
-    environment: 'development',
-  });
+  const [savedConfig, setSavedConfig] = useExperimentConfig();
+  const [config, setConfig] = useState<ExperimentConfig>(savedConfig);
   const [flagKeyInput, setFlagKeyInput] = useState('');
+
+  // Sync with saved config when it changes
+  useEffect(() => {
+    setConfig(savedConfig);
+  }, [savedConfig]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (config.deploymentKey && config.flagKeys.length > 0) {
+      setSavedConfig(config); // Save to local storage
       onExperimentConfig(config);
     }
+  };
+
+  const handleClearSavedData = () => {
+    const emptyConfig: ExperimentConfig = {
+      deploymentKey: '',
+      serverUrl: 'https://api.lab.amplitude.com',
+      flagKeys: [],
+      environment: 'development',
+    };
+    setSavedConfig(emptyConfig);
+    setConfig(emptyConfig);
   };
 
   const addFlagKey = () => {
@@ -56,13 +70,35 @@ const ExperimentSetup: React.FC<ExperimentSetupProps> = ({ onExperimentConfig, i
 
   return (
     <>
-      <div className="flex items-center space-x-2 mb-4">
-        <Flask className={`h-5 w-5 ${textClasses}`} />
-        <h2 className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>Experiment Configuration</h2>
-        {isConfigured && (
-          <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
-            Connected
-          </span>
+      <div className="flex items-center justify-between mb-4">
+        <div className="flex items-center space-x-2">
+          <Flask className={`h-5 w-5 ${textClasses}`} />
+          <h2 className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>Experiment Configuration</h2>
+          {isConfigured && (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-green-100 text-green-800">
+              Connected
+            </span>
+          )}
+          {(savedConfig.deploymentKey || savedConfig.flagKeys.length > 0) && (
+            <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
+              Auto-filled
+            </span>
+          )}
+        </div>
+        {(savedConfig.deploymentKey || savedConfig.flagKeys.length > 0) && (
+          <button
+            type="button"
+            onClick={handleClearSavedData}
+            className={`flex items-center space-x-1 px-2 py-1 text-xs rounded-md transition-colors ${
+              isDarkTheme 
+                ? 'text-gray-400 hover:text-gray-200 hover:bg-gray-700' 
+                : 'text-gray-500 hover:text-gray-700 hover:bg-gray-100'
+            }`}
+            title="Clear saved data"
+          >
+            <RotateCcw className="h-3 w-3" />
+            <span>Clear</span>
+          </button>
         )}
       </div>
 
