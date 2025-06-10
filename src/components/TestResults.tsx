@@ -51,38 +51,44 @@ const TestResults: React.FC<TestResultsProps> = ({ results, onClearResults, isDa
               key={index}
               className={`p-4 border rounded-lg ${
                 result.success
-                  ? 'border-green-200 bg-green-50'
-                  : 'border-red-200 bg-red-50'
+                  ? isDarkTheme
+                    ? 'border-green-700 bg-green-900/20'
+                    : 'border-green-200 bg-green-50'
+                  : isDarkTheme
+                    ? 'border-red-700 bg-red-900/20'
+                    : 'border-red-200 bg-red-50'
               }`}
             >
               <div className="flex items-start justify-between">
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-2">
                     {result.success ? (
-                      <CheckCircle className="h-4 w-4 text-green-600" />
+                      <CheckCircle className={`h-4 w-4 ${isDarkTheme ? 'text-green-400' : 'text-green-600'}`} />
                     ) : (
-                      <XCircle className="h-4 w-4 text-red-600" />
+                      <XCircle className={`h-4 w-4 ${isDarkTheme ? 'text-red-400' : 'text-red-600'}`} />
                     )}
-                    <span className="font-medium text-gray-900">
+                    <span className={`font-medium ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>
                       {result.event.event_type}
                     </span>
                   </div>
                   
-                  <div className="text-sm text-gray-600 space-y-1">
+                  <div className={`text-sm space-y-1 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
                     <p>User ID: {result.userContext.user_id || 'N/A'}</p>
                     <p>Device ID: {result.userContext.device_id || 'N/A'}</p>
                     
                     {result.experimentFlags.length > 0 && (
                       <div className="mt-2">
                         <div className="flex items-center space-x-1 mb-1">
-                          <Flag className="h-3 w-3 text-gray-500" />
-                          <span className="text-xs font-medium text-gray-700">Active Flags:</span>
+                          <Flag className={`h-3 w-3 ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`} />
+                          <span className={`text-xs font-medium ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>Active Flags:</span>
                         </div>
                         <div className="flex flex-wrap gap-1">
                           {result.experimentFlags.map((flag) => (
                             <span
                               key={flag.key}
-                              className="px-2 py-1 text-xs bg-blue-100 text-blue-800 rounded"
+                              className={`px-2 py-1 text-xs rounded ${
+                                isDarkTheme ? 'bg-blue-900/50 text-blue-300' : 'bg-blue-100 text-blue-800'
+                              }`}
                             >
                               {flag.key}: {flag.variant}
                             </span>
@@ -92,7 +98,7 @@ const TestResults: React.FC<TestResultsProps> = ({ results, onClearResults, isDa
                     )}
                     
                     {result.error && (
-                      <p className="text-red-600 font-medium">Error: {result.error}</p>
+                      <p className={`font-medium ${isDarkTheme ? 'text-red-400' : 'text-red-600'}`}>Error: {result.error}</p>
                     )}
                   </div>
                 </div>
@@ -102,11 +108,33 @@ const TestResults: React.FC<TestResultsProps> = ({ results, onClearResults, isDa
                 </div>
               </div>
 
-              {result.responseData && (
-                <div className="mt-3 p-3 rounded-md">
+              {/* Event Payload */}
+              <div className="mt-3">
+                <div className="flex items-center space-x-2 mb-2">
+                  <span className={`text-xs font-medium ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
+                    📤 Event Payload Sent:
+                  </span>
+                </div>
+                <div className={`p-3 rounded-md border ${isDarkTheme ? 'border-gray-600' : 'border-gray-200'}`}>
                   <pre className={`text-xs overflow-x-auto ${codeClasses}`}>
-                    {JSON.stringify(result.responseData, null, 2)}
+                    {JSON.stringify(result.event, null, 2)}
                   </pre>
+                </div>
+              </div>
+
+              {/* Response Data */}
+              {result.responseData && (
+                <div className="mt-3">
+                  <div className="flex items-center space-x-2 mb-2">
+                    <span className={`text-xs font-medium ${isDarkTheme ? 'text-gray-300' : 'text-gray-700'}`}>
+                      📥 Amplitude Response:
+                    </span>
+                  </div>
+                  <div className={`p-3 rounded-md border ${isDarkTheme ? 'border-gray-600' : 'border-gray-200'}`}>
+                    <pre className={`text-xs overflow-x-auto ${codeClasses}`}>
+                      {JSON.stringify(result.responseData, null, 2)}
+                    </pre>
+                  </div>
                 </div>
               )}
             </div>

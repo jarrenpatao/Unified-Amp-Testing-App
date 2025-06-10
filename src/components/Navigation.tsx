@@ -23,15 +23,9 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange,
     },
     {
       id: 'analytics',
-      name: 'Analytics',
+      name: 'Analytics & Results',
       icon: BarChart3,
-      description: 'Event Tracking & User Context'
-    },
-    {
-      id: 'results',
-      name: 'Results',
-      icon: TrendingUp,
-      description: 'Test Results & Monitoring'
+      description: 'Event Tracking & Test Results'
     }
   ];
 
@@ -86,8 +80,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange,
           <ol className="space-y-1 list-decimal list-inside">
             <li>Configure SDK in Setup</li>
             <li>Set up experiments/flags</li>
-            <li>Test analytics events</li>
-            <li>Monitor results</li>
+            <li>Track events & view results</li>
           </ol>
         </div>
       </div>

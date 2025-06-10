@@ -3,7 +3,6 @@ import Navigation from './components/Navigation';
 import SetupSection from './components/sections/SetupSection';
 import ExperimentsSection from './components/sections/ExperimentsSection';
 import AnalyticsSection from './components/sections/AnalyticsSection';
-import ResultsSection from './components/sections/ResultsSection';
 import { useAmplitude } from './hooks/useAmplitude';
 import { AmplitudeEvent, ExperimentConfig, TestResult, AmplitudePayload, UserContext } from './types/amplitude';
 
@@ -109,12 +108,7 @@ function App() {
     await initializeExperiment(config, userContext);
   };
 
-  const handleUserContextUpdate = async (newContext: UserContext) => {
-    setUserContext(newContext);
-    if (experiment) {
-      await updateUserContext(newContext);
-    }
-  };
+
 
   const handleRefreshFlags = async () => {
     setIsFetchingFlags(true);
@@ -254,22 +248,13 @@ function App() {
       case 'analytics':
         return (
           <AnalyticsSection
-            onUserContextUpdate={handleUserContextUpdate}
-            currentContext={userContext}
             onSendEvent={handleSendEvent}
             isLoading={isLoading}
             isDarkTheme={isDarkTheme}
             isInitialized={isInitialized}
             hasExperiment={!!experimentConfig}
-          />
-        );
-      case 'results':
-        return (
-          <ResultsSection
             testResults={testResults}
             onClearResults={handleClearResults}
-            isDarkTheme={isDarkTheme}
-            isInitialized={isInitialized}
             activeFlags={activeFlags}
           />
         );
@@ -289,7 +274,7 @@ function App() {
         />
 
         {/* Main Content */}
-        <main className="flex-1 p-8">
+        <main className="flex-1 p-8 max-w-6xl mx-auto">
           {/* Theme Status Banner */}
           {isDarkTheme && (
             <div className="mb-6 p-4 bg-purple-900 border border-purple-700 rounded-lg">
