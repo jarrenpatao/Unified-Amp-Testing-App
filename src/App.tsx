@@ -1,11 +1,9 @@
 import React, { useState, useEffect } from 'react';
-import Header from './components/Header';
-import ConfigurationPanel from './components/ConfigurationPanel';
-import ExperimentSetup from './components/ExperimentSetup';
-import UserContextManager from './components/UserContextManager';
-import EventForm from './components/EventForm';
-import FlagViewer from './components/FlagViewer';
-import TestResults from './components/TestResults';
+import Navigation from './components/Navigation';
+import SetupSection from './components/sections/SetupSection';
+import ExperimentsSection from './components/sections/ExperimentsSection';
+import AnalyticsSection from './components/sections/AnalyticsSection';
+import ResultsSection from './components/sections/ResultsSection';
 import { useAmplitude } from './hooks/useAmplitude';
 import { AmplitudeEvent, ExperimentConfig, TestResult, AmplitudePayload, UserContext } from './types/amplitude';
 
@@ -25,6 +23,7 @@ function App() {
     assignVariant
   } = useAmplitude();
   
+  const [activeSection, setActiveSection] = useState('setup');
   const [apiKey, setApiKey] = useState('');
   const [userContext, setUserContext] = useState<UserContext>({
     user_id: '',
@@ -94,6 +93,32 @@ function App() {
     setIsFetchingFlags(true);
     await fetchVariants();
     setIsFetchingFlags(false);
+  };
+
+  const handleAssignLightMode = async () => {
+    if (!experimentConfig?.flagKeys.length) {
+      alert('Please configure experiment flags first');
+      return;
+    }
+    
+    const themeFlag = experimentConfig.flagKeys.find(key => 
+      key.includes('theme') || key.includes('dark') || key.includes('color')
+    ) || experimentConfig.flagKeys[0];
+    
+    await assignVariant(themeFlag, 'control');
+  };
+
+  const handleAssignDarkMode = async () => {
+    if (!experimentConfig?.flagKeys.length) {
+      alert('Please configure experiment flags first');
+      return;
+    }
+    
+    const themeFlag = experimentConfig.flagKeys.find(key => 
+      key.includes('theme') || key.includes('dark') || key.includes('color')
+    ) || experimentConfig.flagKeys[0];
+    
+    await assignVariant(themeFlag, 'treatment');
   };
 
   const handleSendEvent = async (event: AmplitudeEvent) => {
@@ -168,207 +193,108 @@ function App() {
     setTestResults([]);
   };
 
-  const handleAssignLightMode = async () => {
-    if (!experimentConfig?.flagKeys.length) {
-      alert('Please configure experiment flags first');
-      return;
-    }
-    
-    const themeFlag = experimentConfig.flagKeys.find(key => 
-      key.includes('theme') || key.includes('dark') || key.includes('color')
-    ) || experimentConfig.flagKeys[0];
-    
-    await assignVariant(themeFlag, 'control');
-  };
-
-  const handleAssignDarkMode = async () => {
-    if (!experimentConfig?.flagKeys.length) {
-      alert('Please configure experiment flags first');
-      return;
-    }
-    
-    const themeFlag = experimentConfig.flagKeys.find(key => 
-      key.includes('theme') || key.includes('dark') || key.includes('color')
-    ) || experimentConfig.flagKeys[0];
-    
-    await assignVariant(themeFlag, 'treatment');
-  };
-
   const themeClasses = isDarkTheme 
     ? 'min-h-screen bg-gray-900 text-white transition-colors duration-500'
     : 'min-h-screen bg-gray-50 text-gray-900 transition-colors duration-500';
 
-  const cardClasses = isDarkTheme
-    ? 'bg-gray-800 border-gray-700'
-    : 'bg-white border-gray-200';
+  const renderActiveSection = () => {
+    switch (activeSection) {
+      case 'setup':
+        return (
+          <SetupSection
+            onConfigUpdate={handleConfigUpdate}
+            isDarkTheme={isDarkTheme}
+            isInitialized={isInitialized}
+          />
+        );
+      case 'experiments':
+        return (
+          <ExperimentsSection
+            onExperimentConfig={handleExperimentConfig}
+            isConfigured={!!experimentConfig}
+            isDarkTheme={isDarkTheme}
+            isInitialized={isInitialized}
+            experimentConfig={experimentConfig}
+            activeFlags={activeFlags}
+            onRefreshFlags={handleRefreshFlags}
+            isFetchingFlags={isFetchingFlags}
+            onAssignLightMode={handleAssignLightMode}
+            onAssignDarkMode={handleAssignDarkMode}
+          />
+        );
+      case 'analytics':
+        return (
+          <AnalyticsSection
+            onUserContextUpdate={handleUserContextUpdate}
+            currentContext={userContext}
+            onSendEvent={handleSendEvent}
+            isLoading={isLoading}
+            isDarkTheme={isDarkTheme}
+            isInitialized={isInitialized}
+            hasExperiment={!!experimentConfig}
+          />
+        );
+      case 'results':
+        return (
+          <ResultsSection
+            testResults={testResults}
+            onClearResults={handleClearResults}
+            isDarkTheme={isDarkTheme}
+            isInitialized={isInitialized}
+            activeFlags={activeFlags}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <div className={themeClasses}>
-      <Header isDarkTheme={isDarkTheme} />
-      
-      <main className="max-w-7xl mx-auto px-6 py-8">
-        {isDarkTheme && (
-          <div className="mb-6 p-4 bg-purple-900 border border-purple-700 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
-                <span className="text-purple-200 text-sm font-medium">
-                  🌙 Dark theme active - triggered by user properties or experiment flags
-                </span>
-              </div>
-              <div className="text-xs text-purple-300">
-                {activeFlags.length > 0 && `Active flags: ${activeFlags.map(f => `${f.key}:${f.variant}`).join(', ')}`}
-              </div>
-            </div>
-          </div>
-        )}
+      <div className="flex">
+        {/* Left Navigation */}
+        <Navigation
+          activeSection={activeSection}
+          onSectionChange={setActiveSection}
+          isDarkTheme={isDarkTheme}
+        />
 
-        {!isDarkTheme && activeFlags.length > 0 && (
-          <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center space-x-2">
-                <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
-                <span className="text-blue-800 text-sm font-medium">
-                  ☀️ Light theme active - experiment flags: {activeFlags.map(f => `${f.key}:${f.variant}`).join(', ')}
-                </span>
-              </div>
-            </div>
-          </div>
-        )}
-
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Left Column */}
-          <div className="space-y-8">
-            <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
-              <ConfigurationPanel onConfigUpdate={handleConfigUpdate} isDarkTheme={isDarkTheme} />
-            </div>
-            
-            {isInitialized && (
-              <>
-                <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
-                  <ExperimentSetup 
-                    onExperimentConfig={handleExperimentConfig}
-                    isConfigured={!!experimentConfig}
-                    isDarkTheme={isDarkTheme}
-                  />
-                </div>
-
-                {experiment && experimentConfig && (
-                  <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
-                    <div className="flex items-center space-x-2 mb-4">
-                      <span className="text-lg font-semibold">🎨 Theme Assignment CTAs</span>
-                    </div>
-                    <p className={`text-sm mb-4 ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>
-                      Manually assign variants to test theme changes. Treatment = Dark Mode, Control = Light Mode.
-                    </p>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <button
-                        onClick={handleAssignLightMode}
-                        className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors border"
-                      >
-                        <span>☀️</span>
-                        <span>Assign Light Mode (Control)</span>
-                      </button>
-                      <button
-                        onClick={handleAssignDarkMode}
-                        className="flex items-center justify-center space-x-2 px-4 py-3 bg-gray-800 text-white rounded-lg hover:bg-gray-900 transition-colors border border-gray-600"
-                      >
-                        <span>🌙</span>
-                        <span>Assign Dark Mode (Treatment)</span>
-                      </button>
-                    </div>
-                  </div>
-                )}
-                
-                <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
-                  <UserContextManager
-                    onUserContextUpdate={handleUserContextUpdate}
-                    currentContext={userContext}
-                    isDarkTheme={isDarkTheme}
-                  />
-                </div>
-              </>
-            )}
-
-            {experiment && (
-              <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
-                <EventForm onSendEvent={handleSendEvent} isLoading={isLoading} isDarkTheme={isDarkTheme} />
-              </div>
-            )}
-          </div>
-
-          {/* Right Column */}
-          <div className="space-y-8">
-            {experiment && (
-              <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
-                <FlagViewer
-                  flags={activeFlags}
-                  onRefresh={handleRefreshFlags}
-                  isLoading={isFetchingFlags}
-                  isDarkTheme={isDarkTheme}
-                />
-              </div>
-            )}
-
-            <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
-              <TestResults
-                results={testResults}
-                onClearResults={handleClearResults}
-                isDarkTheme={isDarkTheme}
-              />
-            </div>
-
-            {/* Status Panel */}
-            <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
-              <h3 className={`text-lg font-semibold mb-4 ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>Status</h3>
-              <div className="space-y-3">
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Amplitude SDK</span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    isInitialized
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {isInitialized ? 'Initialized' : 'Not Initialized'}
+        {/* Main Content */}
+        <main className="flex-1 p-8">
+          {/* Theme Status Banner */}
+          {isDarkTheme && (
+            <div className="mb-6 p-4 bg-purple-900 border border-purple-700 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-purple-400 rounded-full animate-pulse"></div>
+                  <span className="text-purple-200 text-sm font-medium">
+                    🌙 Dark theme active - triggered by user properties or experiment flags
                   </span>
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Experiment Client</span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    experiment
-                      ? 'bg-green-100 text-green-800'
-                      : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {experiment ? 'Connected' : 'Not Connected'}
-                  </span>
+                <div className="text-xs text-purple-300">
+                  {activeFlags.length > 0 && `Active flags: ${activeFlags.map(f => `${f.key}:${f.variant}`).join(', ')}`}
                 </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Active Flags</span>
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-blue-100 text-blue-800">
-                    {activeFlags.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Total Events Sent</span>
-                  <span className="px-2 py-1 text-xs font-medium rounded-full bg-purple-100 text-purple-800">
-                    {testResults.length}
-                  </span>
-                </div>
-                <div className="flex items-center justify-between">
-                  <span className={`text-sm ${isDarkTheme ? 'text-gray-300' : 'text-gray-600'}`}>Theme Mode</span>
-                  <span className={`px-2 py-1 text-xs font-medium rounded-full ${
-                    isDarkTheme 
-                      ? 'bg-purple-100 text-purple-800' 
-                      : 'bg-yellow-100 text-yellow-800'
-                  }`}>
-                    {isDarkTheme ? '🌙 Dark' : '☀️ Light'}
+              </div>
+            </div>
+          )}
+
+          {!isDarkTheme && activeFlags.length > 0 && (
+            <div className="mb-6 p-4 bg-blue-50 border border-blue-200 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  <div className="w-3 h-3 bg-blue-400 rounded-full animate-pulse"></div>
+                  <span className="text-blue-800 text-sm font-medium">
+                    ☀️ Light theme active - experiment flags: {activeFlags.map(f => `${f.key}:${f.variant}`).join(', ')}
                   </span>
                 </div>
               </div>
             </div>
-          </div>
-        </div>
-      </main>
+          )}
+
+          {/* Active Section Content */}
+          {renderActiveSection()}
+        </main>
+      </div>
     </div>
   );
 }
