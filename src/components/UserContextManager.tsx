@@ -10,7 +10,8 @@ interface UserContextManagerProps {
 
 const UserContextManager: React.FC<UserContextManagerProps> = ({ 
   onUserContextUpdate, 
-  currentContext 
+  currentContext,
+  isDarkTheme = false
 }) => {
   const [context, setContext] = useState<UserContext>(currentContext);
   const [userPropertiesInput, setUserPropertiesInput] = useState(
@@ -73,17 +74,28 @@ const UserContextManager: React.FC<UserContextManagerProps> = ({
     setUserPropertiesInput(JSON.stringify(lightThemeProperties, null, 2));
   };
 
-  return (
-    <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+  // Theme-aware styling
+  const textClasses = isDarkTheme ? 'text-gray-300' : 'text-gray-600';
+  const labelClasses = isDarkTheme ? 'text-gray-200' : 'text-gray-700';
+  const cardClasses = isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
+  const inputClasses = isDarkTheme 
+    ? 'bg-gray-700 border-gray-600 text-white placeholder-gray-400 focus:ring-blue-400 focus:border-blue-400'
+    : 'bg-white border-gray-300 text-gray-900 placeholder-gray-500 focus:ring-blue-500 focus:border-transparent';
+  const buttonClasses = isDarkTheme
+    ? 'bg-gray-700 text-gray-200 hover:bg-gray-600'
+    : 'bg-gray-100 text-gray-700 hover:bg-gray-200';
+
+      return (
+    <div className={`rounded-lg shadow-sm border p-6 ${cardClasses}`}>
       <div className="flex items-center justify-between mb-4">
         <div className="flex items-center space-x-2">
-          <Users className="h-5 w-5 text-gray-600" />
-          <h2 className="text-lg font-semibold text-gray-900">User Context</h2>
+          <Users className={`h-5 w-5 ${textClasses}`} />
+          <h2 className={`text-lg font-semibold ${isDarkTheme ? 'text-white' : 'text-gray-900'}`}>User Context</h2>
         </div>
         <button
           type="button"
           onClick={generateRandomUser}
-          className="flex items-center space-x-2 px-3 py-1 text-sm bg-gray-100 text-gray-700 rounded-md hover:bg-gray-200 transition-colors"
+          className={`flex items-center space-x-2 px-3 py-1 text-sm rounded-md transition-colors ${buttonClasses}`}
         >
           <RefreshCw className="h-4 w-4" />
           <span>Random User</span>
@@ -93,7 +105,7 @@ const UserContextManager: React.FC<UserContextManagerProps> = ({
       <form onSubmit={handleSubmit} className="space-y-4">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label htmlFor="userId" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="userId" className={`block text-sm font-medium mb-2 ${labelClasses}`}>
               User ID
             </label>
             <input
@@ -101,13 +113,13 @@ const UserContextManager: React.FC<UserContextManagerProps> = ({
               id="userId"
               value={context.user_id || ''}
               onChange={(e) => setContext(prev => ({ ...prev, user_id: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${inputClasses}`}
               placeholder="user-123"
             />
           </div>
 
           <div>
-            <label htmlFor="deviceId" className="block text-sm font-medium text-gray-700 mb-2">
+            <label htmlFor="deviceId" className={`block text-sm font-medium mb-2 ${labelClasses}`}>
               Device ID
             </label>
             <input
@@ -115,7 +127,7 @@ const UserContextManager: React.FC<UserContextManagerProps> = ({
               id="deviceId"
               value={context.device_id || ''}
               onChange={(e) => setContext(prev => ({ ...prev, device_id: e.target.value }))}
-              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors"
+              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${inputClasses}`}
               placeholder="device-123"
             />
           </div>
@@ -123,12 +135,12 @@ const UserContextManager: React.FC<UserContextManagerProps> = ({
 
         <div>
           <div className="flex items-center justify-between mb-2">
-            <label htmlFor="userProperties" className="block text-sm font-medium text-gray-700">
+            <label htmlFor="userProperties" className={`block text-sm font-medium ${labelClasses}`}>
               User Properties (JSON)
             </label>
             <div className="flex items-center space-x-2">
               <Lightbulb className="h-4 w-4 text-yellow-500" />
-              <span className="text-xs text-gray-500">Theme Examples:</span>
+              <span className={`text-xs ${textClasses}`}>Theme Examples:</span>
               <button
                 type="button"
                 onClick={setDarkThemeExample}
@@ -149,7 +161,7 @@ const UserContextManager: React.FC<UserContextManagerProps> = ({
             id="userProperties"
             value={userPropertiesInput}
             onChange={(e) => setUserPropertiesInput(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors font-mono text-sm"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors font-mono text-sm ${inputClasses}`}
             rows={6}
             placeholder={`{
   "theme_preference": "dark",
@@ -160,20 +172,20 @@ const UserContextManager: React.FC<UserContextManagerProps> = ({
   }
 }`}
           />
-          <p className="text-xs text-gray-500 mt-1">
+          <p className={`text-xs mt-1 ${isDarkTheme ? 'text-gray-400' : 'text-gray-500'}`}>
             💡 Try the theme examples above to see how user properties can affect experiment targeting and visual changes
           </p>
         </div>
 
         <div>
-          <label htmlFor="groups" className="block text-sm font-medium text-gray-700 mb-2">
+          <label htmlFor="groups" className={`block text-sm font-medium mb-2 ${labelClasses}`}>
             Groups (JSON)
           </label>
           <textarea
             id="groups"
             value={groupsInput}
             onChange={(e) => setGroupsInput(e.target.value)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-colors font-mono text-sm"
+            className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors font-mono text-sm ${inputClasses}`}
             rows={3}
             placeholder={`{
   "company": "amplitude",

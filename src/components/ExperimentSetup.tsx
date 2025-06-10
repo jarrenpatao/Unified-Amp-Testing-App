@@ -103,6 +103,13 @@ const ExperimentSetup: React.FC<ExperimentSetupProps> = ({ onExperimentConfig, i
       </div>
 
       <form onSubmit={handleSubmit} className="space-y-4">
+        <div className={`p-3 rounded-md ${isDarkTheme ? 'bg-blue-900/20 border border-blue-700' : 'bg-blue-50 border border-blue-200'} mb-4`}>
+          <p className={`text-sm ${isDarkTheme ? 'text-blue-200' : 'text-blue-800'}`}>
+            <strong>📦 Unified SDK:</strong> Now using Amplitude's new Browser Unified SDK (beta). 
+            Some experiment features are still being implemented.
+          </p>
+        </div>
+
         <div>
           <label htmlFor="deploymentKey" className={`flex items-center space-x-2 text-sm font-medium mb-2 ${labelClasses}`}>
             <Key className="h-4 w-4" />

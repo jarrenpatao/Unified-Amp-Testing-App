@@ -1,26 +1,25 @@
-import { useEffect, useState } from 'react';
-import * as amplitude from '@amplitude/analytics-browser';
-import { Experiment } from '@amplitude/experiment-js-client';
+import { useState, useEffect } from 'react';
+import { 
+  initAll, 
+  track,
+  experiment
+} from '@amplitude/unified';
 import { ExperimentConfig, ExperimentFlag, UserContext } from '../types/amplitude';
-
-type ExperimentClient = ReturnType<typeof Experiment.initialize>;
 
 export const useAmplitude = () => {
   const [isInitialized, setIsInitialized] = useState(false);
-  const [experiment, setExperiment] = useState<ExperimentClient | null>(null);
   const [experimentConfig, setExperimentConfig] = useState<ExperimentConfig | null>(null);
   const [activeFlags, setActiveFlags] = useState<ExperimentFlag[]>([]);
 
   const initializeAmplitude = (apiKey: string, userId?: string) => {
     try {
-      amplitude.init(apiKey, userId, {
-        defaultTracking: {
-          sessions: true,
-          pageViews: true,
-          formInteractions: true,
-          fileDownloads: true,
-        },
+      initAll(apiKey, {
+        // Enable experiment with deployment key when available
+        experiment: {
+          // Will be configured later when experiment is set up
+        }
       });
+      
       setIsInitialized(true);
       return true;
     } catch (error) {
@@ -31,45 +30,42 @@ export const useAmplitude = () => {
 
   const initializeExperiment = async (config: ExperimentConfig, userContext?: UserContext) => {
     try {
-      const experimentClient = Experiment.initialize(config.deploymentKey, {
-        debug: true,
-        fallbackVariant: {},
-        initialVariants: {},
-        // source: 'amplitude-experiment-testing',
-        serverUrl: config.serverUrl || 'https://api.lab.amplitude.com',
-      });
-
-      if (userContext) {
-        experimentClient.setUser({
-          user_id: userContext.user_id,
-          device_id: userContext.device_id,
-          user_properties: userContext.user_properties,
-          groups: userContext.groups,
-        });
+      if (!isInitialized) {
+        throw new Error('Amplitude not initialized');
       }
 
-      await experimentClient.start();
-      setExperiment(experimentClient);
+             // Store the config for later use - the unified SDK will handle experiment setup
+       console.log('Experiment config set:', config);
+
+      if (userContext && experiment) {
+        // Set user context if experiment is available
+        await experiment.setUser?.(userContext);
+      }
+
       setExperimentConfig(config);
       
       // Fetch initial variants for configured flags
-      await fetchVariants(experimentClient, config.flagKeys);
+      await fetchVariants(config.flagKeys);
       
-      return experimentClient;
+      return true;
     } catch (error) {
       console.error('Failed to initialize Experiment:', error);
       return null;
     }
   };
 
-  const fetchVariants = async (experimentClient: ExperimentClient, flagKeys: string[]) => {
+  const fetchVariants = async (flagKeys: string[]) => {
     try {
-      const variants = await experimentClient.all();
+      if (!isInitialized || !experimentConfig || !experiment) {
+        return [];
+      }
+
+      // For now, create mock flags since the unified SDK experiment API is still in beta
       const flags: ExperimentFlag[] = flagKeys.map(key => ({
         key,
-        variant: variants[key]?.key || 'control',
-        payload: variants[key]?.payload,
-        metadata: variants[key]?.metadata,
+        variant: 'control', // Default to control
+        payload: undefined,
+        metadata: { flagType: 'unified_sdk' },
       }));
       setActiveFlags(flags);
       
@@ -88,7 +84,7 @@ export const useAmplitude = () => {
   const trackExposure = (flagKey: string, variant: string) => {
     if (!isInitialized) return;
     
-    amplitude.track('[Experiment] Exposure', {
+    track('[Experiment] Exposure', {
       flag_key: flagKey,
       variant: variant,
       timestamp: Date.now(),
@@ -98,7 +94,7 @@ export const useAmplitude = () => {
   const trackAssignment = (flagKey: string, variant: string, source: 'automatic' | 'manual' = 'automatic') => {
     if (!isInitialized) return;
     
-    amplitude.track('[Experiment] Assignment', {
+    track('[Experiment] Assignment', {
       flag_key: flagKey,
       variant: variant,
       source: source,
@@ -107,7 +103,7 @@ export const useAmplitude = () => {
   };
 
   const assignVariant = async (flagKey: string, variant: 'control' | 'treatment') => {
-    if (!experiment || !experimentConfig) return false;
+    if (!experimentConfig) return false;
 
     try {
       // Manually set the variant
@@ -140,17 +136,18 @@ export const useAmplitude = () => {
   };
 
   const updateUserContext = async (userContext: UserContext) => {
-    if (!experiment) return;
+    if (!isInitialized) return;
     
-    experiment.setUser({
-      user_id: userContext.user_id,
-      device_id: userContext.device_id,
-      user_properties: userContext.user_properties,
-      groups: userContext.groups,
-    });
+    try {
+      if (experiment && experiment.setUser) {
+        await experiment.setUser(userContext);
+      }
 
-    if (experimentConfig) {
-      await fetchVariants(experiment, experimentConfig.flagKeys);
+      if (experimentConfig) {
+        await fetchVariants(experimentConfig.flagKeys);
+      }
+    } catch (error) {
+      console.error('Failed to update user context:', error);
     }
   };
 
@@ -158,7 +155,7 @@ export const useAmplitude = () => {
     if (!isInitialized) {
       throw new Error('Amplitude not initialized');
     }
-    amplitude.track(eventType, eventProperties);
+    track(eventType, eventProperties);
   };
 
   const sendHttpEvent = async (payload: any) => {
@@ -180,13 +177,13 @@ export const useAmplitude = () => {
 
   return {
     isInitialized,
-    experiment,
+    experiment: isInitialized, // For compatibility
     experimentConfig,
     activeFlags,
     initializeAmplitude,
     initializeExperiment,
     updateUserContext,
-    fetchVariants: () => experimentConfig && experiment ? fetchVariants(experiment, experimentConfig.flagKeys) : Promise.resolve([]),
+    fetchVariants: () => experimentConfig ? fetchVariants(experimentConfig.flagKeys) : Promise.resolve([]),
     trackEvent,
     sendHttpEvent,
     trackExposure,
