@@ -42,13 +42,40 @@ function App() {
     const themeFromUserProps = userContext.user_properties?.theme_preference === 'dark' ||
                               userContext.user_properties?.feature_flags?.dark_mode_enabled === true;
     
-    // Check experiment flags for theme variants
-    const themeFromFlags = activeFlags.some(flag => 
-      (flag.key.includes('theme') || flag.key.includes('dark') || flag.key.includes('color')) &&
-      (flag.variant === 'dark' || flag.variant === 'treatment' || flag.payload?.theme === 'dark')
-    );
+    // Check experiment flags for theme variants - more permissive logic
+    const themeFromFlags = activeFlags.some(flag => {
+      // Debug logging
+      console.log('🔍 Checking flag for theme:', {
+        key: flag.key,
+        variant: flag.variant,
+        payload: flag.payload,
+        keyMatches: flag.key.includes('theme') || flag.key.includes('dark') || flag.key.includes('color'),
+        variantMatches: flag.variant === 'treatment' || flag.variant === 'dark',
+        payloadMatches: flag.payload?.theme === 'dark'
+      });
+      
+      // Check any flag with treatment variant OR dark theme payload
+      // This covers manually assigned variants regardless of flag key name
+      return (
+        // Manual assignment with treatment variant
+        (flag.variant === 'treatment' && flag.metadata?.flagType === 'manual_assignment') ||
+        // Traditional theme flags
+        ((flag.key.includes('theme') || flag.key.includes('dark') || flag.key.includes('color')) &&
+         (flag.variant === 'dark' || flag.variant === 'treatment' || flag.payload?.theme === 'dark')) ||
+        // Any flag with dark theme payload
+        flag.payload?.theme === 'dark'
+      );
+    });
 
-    setIsDarkTheme(themeFromUserProps || themeFromFlags);
+    const newTheme = themeFromUserProps || themeFromFlags;
+    console.log('🎨 Theme detection:', {
+      userProps: themeFromUserProps,
+      flags: themeFromFlags,
+      activeFlags: activeFlags.map(f => ({ key: f.key, variant: f.variant, payload: f.payload })),
+      finalTheme: newTheme
+    });
+
+    setIsDarkTheme(newTheme);
   }, [userContext.user_properties, activeFlags]);
 
   const handleConfigUpdate = async (config: { apiKey: string; userId: string; deviceId: string }) => {
@@ -105,6 +132,7 @@ function App() {
       key.includes('theme') || key.includes('dark') || key.includes('color')
     ) || experimentConfig.flagKeys[0];
     
+    console.log('☀️ Assigning light mode to flag:', themeFlag);
     await assignVariant(themeFlag, 'control');
   };
 
@@ -118,6 +146,7 @@ function App() {
       key.includes('theme') || key.includes('dark') || key.includes('color')
     ) || experimentConfig.flagKeys[0];
     
+    console.log('🌙 Assigning dark mode to flag:', themeFlag);
     await assignVariant(themeFlag, 'treatment');
   };
 
