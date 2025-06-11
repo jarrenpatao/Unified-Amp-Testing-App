@@ -1,7 +1,7 @@
 import React from 'react';
 import EventForm from '../EventForm';
 import TestResults from '../TestResults';
-import { AmplitudeEvent, TestResult, ExperimentFlag } from '../../types/amplitude';
+import { AmplitudeEvent, TestResult, ExperimentFlag, UserContext } from '../../types/amplitude';
 
 interface AnalyticsSectionProps {
   onSendEvent: (event: AmplitudeEvent) => void;
@@ -12,6 +12,7 @@ interface AnalyticsSectionProps {
   testResults: TestResult[];
   onClearResults: () => void;
   activeFlags: ExperimentFlag[];
+  userContext: UserContext;
 }
 
 const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
@@ -23,6 +24,7 @@ const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
   testResults,
   onClearResults,
   activeFlags,
+  userContext,
 }) => {
   const cardClasses = isDarkTheme ? 'bg-gray-800 border-gray-700' : 'bg-white border-gray-200';
 
@@ -135,7 +137,8 @@ const AnalyticsSection: React.FC<AnalyticsSectionProps> = ({
         <EventForm 
           onSendEvent={onSendEvent} 
           isLoading={isLoading} 
-          isDarkTheme={isDarkTheme} 
+          isDarkTheme={isDarkTheme}
+          userContext={userContext}
         />
       </div>
 

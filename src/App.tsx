@@ -256,6 +256,7 @@ function App() {
             testResults={testResults}
             onClearResults={handleClearResults}
             activeFlags={activeFlags}
+            userContext={userContext}
           />
         );
       default:

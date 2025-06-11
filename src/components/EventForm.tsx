@@ -1,20 +1,34 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Send, Plus, Minus } from 'lucide-react';
-import { AmplitudeEvent } from '../types/amplitude';
+import { AmplitudeEvent, UserContext } from '../types/amplitude';
 
 interface EventFormProps {
   onSendEvent: (event: AmplitudeEvent) => void;
   isLoading?: boolean;
   isDarkTheme?: boolean;
+  userContext?: UserContext;
 }
 
-const EventForm: React.FC<EventFormProps> = ({ onSendEvent, isLoading = false, isDarkTheme = false }) => {
+const EventForm: React.FC<EventFormProps> = ({ onSendEvent, isLoading = false, isDarkTheme = false, userContext }) => {
   const [event, setEvent] = useState<AmplitudeEvent>({
     event_type: 'test_event',
     time: Date.now(),
     event_properties: {},
     user_properties: {},
+    user_id: userContext?.user_id || '',
+    device_id: userContext?.device_id || '',
   });
+
+  // Auto-populate user info when userContext changes
+  useEffect(() => {
+    if (userContext) {
+      setEvent(prev => ({
+        ...prev,
+        user_id: userContext.user_id || prev.user_id,
+        device_id: userContext.device_id || prev.device_id,
+      }));
+    }
+  }, [userContext]);
 
   const [eventPropertiesInput, setEventPropertiesInput] = useState('{}');
   const [userPropertiesInput, setUserPropertiesInput] = useState('{}');
@@ -74,32 +88,72 @@ const EventForm: React.FC<EventFormProps> = ({ onSendEvent, isLoading = false, i
 
           <div>
             <label htmlFor="userId" className={`block text-sm font-medium mb-2 ${labelClasses}`}>
-              User ID
+              User ID {userContext?.user_id && (
+                <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
+                  isDarkTheme ? 'bg-green-900/50 text-green-300' : 'bg-green-100 text-green-700'
+                }`}>
+                  auto-filled
+                </span>
+              )}
             </label>
-            <input
-              type="text"
-              id="userId"
-              value={event.user_id || ''}
-              onChange={(e) => handleChange('user_id', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${inputClasses}`}
-              placeholder="user-123"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                id="userId"
+                value={event.user_id || ''}
+                onChange={(e) => handleChange('user_id', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${inputClasses}`}
+                placeholder="user-123"
+              />
+              {userContext?.user_id && (
+                <button
+                  type="button"
+                  onClick={() => handleChange('user_id', '')}
+                  className={`absolute right-2 top-2 text-xs px-2 py-1 rounded hover:opacity-75 ${
+                    isDarkTheme ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-600'
+                  }`}
+                  title="Clear auto-filled value"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <label htmlFor="deviceId" className={`block text-sm font-medium mb-2 ${labelClasses}`}>
-              Device ID
+              Device ID {userContext?.device_id && (
+                <span className={`ml-2 text-xs px-2 py-0.5 rounded ${
+                  isDarkTheme ? 'bg-green-900/50 text-green-300' : 'bg-green-100 text-green-700'
+                }`}>
+                  auto-filled
+                </span>
+              )}
             </label>
-            <input
-              type="text"
-              id="deviceId"
-              value={event.device_id || ''}
-              onChange={(e) => handleChange('device_id', e.target.value)}
-              className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${inputClasses}`}
-              placeholder="device-123"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                id="deviceId"
+                value={event.device_id || ''}
+                onChange={(e) => handleChange('device_id', e.target.value)}
+                className={`w-full px-3 py-2 border rounded-md focus:outline-none focus:ring-2 transition-colors ${inputClasses}`}
+                placeholder="device-123"
+              />
+              {userContext?.device_id && (
+                <button
+                  type="button"
+                  onClick={() => handleChange('device_id', '')}
+                  className={`absolute right-2 top-2 text-xs px-2 py-1 rounded hover:opacity-75 ${
+                    isDarkTheme ? 'bg-gray-600 text-gray-300' : 'bg-gray-200 text-gray-600'
+                  }`}
+                  title="Clear auto-filled value"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
           </div>
 
           <div>
