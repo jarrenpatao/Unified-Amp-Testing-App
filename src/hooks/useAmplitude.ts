@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { 
   initAll, 
   track,
@@ -11,14 +11,19 @@ export const useAmplitude = () => {
   const [experimentConfig, setExperimentConfig] = useState<ExperimentConfig | null>(null);
   const [activeFlags, setActiveFlags] = useState<ExperimentFlag[]>([]);
 
-  const initializeAmplitude = (apiKey: string, userId?: string) => {
+  const initializeAmplitude = (apiKey: string) => {
     try {
       initAll(apiKey, {
         // Enable experiment with deployment key when available
         experiment: {
           // Will be configured later when experiment is set up
+        },
+        // Enable Guides and Surveys (using type assertion for beta SDK)
+        engagement: {
+          // Guides and Surveys options
+          logLevel: 'warn' // Set to 'debug' for more verbose logging during development
         }
-      });
+      } as any);
       
       setIsInitialized(true);
       return true;
@@ -175,6 +180,45 @@ export const useAmplitude = () => {
     }
   };
 
+  // Guides and Surveys utility functions
+  const getEngagementStatus = () => {
+    if (typeof window !== 'undefined' && (window as any).engagement) {
+      return (window as any).engagement._debugStatus?.() || null;
+    }
+    return null;
+  };
+
+  const listGuidesAndSurveys = () => {
+    if (typeof window !== 'undefined' && (window as any).engagement) {
+      return (window as any).engagement.gs?.list?.() || [];
+    }
+    return [];
+  };
+
+  const showGuideOrSurvey = (key: string, stepIndex?: number) => {
+    if (typeof window !== 'undefined' && (window as any).engagement) {
+      (window as any).engagement.gs?.show?.(key, stepIndex);
+    }
+  };
+
+  const closeAllGuidesAndSurveys = () => {
+    if (typeof window !== 'undefined' && (window as any).engagement) {
+      (window as any).engagement.gs?.closeAll?.();
+    }
+  };
+
+  const setUserProperties = (userProperties: Record<string, any>) => {
+    if (typeof window !== 'undefined' && (window as any).engagement) {
+      (window as any).engagement._setUserProperties?.(userProperties);
+    }
+  };
+
+  const setSessionProperty = (key: string, value: any) => {
+    if (typeof window !== 'undefined' && (window as any).engagement) {
+      (window as any).engagement.setSessionProperty?.(key, value);
+    }
+  };
+
   return {
     isInitialized,
     experiment: isInitialized, // For compatibility
@@ -189,5 +233,12 @@ export const useAmplitude = () => {
     trackExposure,
     trackAssignment,
     assignVariant,
+    // Guides and Surveys functions
+    getEngagementStatus,
+    listGuidesAndSurveys,
+    showGuideOrSurvey,
+    closeAllGuidesAndSurveys,
+    setUserProperties,
+    setSessionProperty,
   };
 };

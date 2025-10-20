@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import Navigation from './components/Navigation';
 import SetupSection from './components/sections/SetupSection';
 import ExperimentsSection from './components/sections/ExperimentsSection';
+import GuidesSurveysSection from './components/sections/GuidesSurveysSection';
 import AnalyticsSection from './components/sections/AnalyticsSection';
 import { useAmplitude } from './hooks/useAmplitude';
 import { AmplitudeEvent, ExperimentConfig, TestResult, AmplitudePayload, UserContext } from './types/amplitude';
@@ -9,17 +10,21 @@ import { AmplitudeEvent, ExperimentConfig, TestResult, AmplitudePayload, UserCon
 function App() {
   const { 
     isInitialized, 
-    experiment,
     experimentConfig,
     activeFlags,
     initializeAmplitude, 
     initializeExperiment,
-    updateUserContext,
     fetchVariants,
     sendHttpEvent,
     trackExposure,
-    trackAssignment,
-    assignVariant
+    assignVariant,
+    // Guides and Surveys functions
+    getEngagementStatus,
+    listGuidesAndSurveys,
+    showGuideOrSurvey,
+    closeAllGuidesAndSurveys,
+    setUserProperties,
+    setSessionProperty
   } = useAmplitude();
   
   const [activeSection, setActiveSection] = useState('setup');
@@ -89,7 +94,7 @@ function App() {
     setUserContext(newUserContext);
     
     // Initialize Amplitude
-    const success = initializeAmplitude(config.apiKey, config.userId);
+    const success = initializeAmplitude(config.apiKey);
     
     // Track initial exposure if initialization was successful
     if (success) {
@@ -243,6 +248,19 @@ function App() {
             isFetchingFlags={isFetchingFlags}
             onAssignLightMode={handleAssignLightMode}
             onAssignDarkMode={handleAssignDarkMode}
+          />
+        );
+      case 'guides-surveys':
+        return (
+          <GuidesSurveysSection
+            isInitialized={isInitialized}
+            isDarkTheme={isDarkTheme}
+            getEngagementStatus={getEngagementStatus}
+            listGuidesAndSurveys={listGuidesAndSurveys}
+            showGuideOrSurvey={showGuideOrSurvey}
+            closeAllGuidesAndSurveys={closeAllGuidesAndSurveys}
+            setUserProperties={setUserProperties}
+            setSessionProperty={setSessionProperty}
           />
         );
       case 'analytics':

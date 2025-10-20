@@ -1,5 +1,5 @@
 import React from 'react';
-import { Settings, FlaskRound as Flask, BarChart3, TrendingUp } from 'lucide-react';
+import { Settings, FlaskRound as Flask, BarChart3, MessageSquare } from 'lucide-react';
 
 interface NavigationProps {
   activeSection: string;
@@ -20,6 +20,12 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange,
       name: 'Experiments',
       icon: Flask,
       description: 'Flags & Variant Testing'
+    },
+    {
+      id: 'guides-surveys',
+      name: 'Guides & Surveys',
+      icon: MessageSquare,
+      description: 'User Engagement & Targeting'
     },
     {
       id: 'analytics',
@@ -80,6 +86,7 @@ const Navigation: React.FC<NavigationProps> = ({ activeSection, onSectionChange,
           <ol className="space-y-1 list-decimal list-inside">
             <li>Configure SDK in Setup</li>
             <li>Set up experiments/flags</li>
+            <li>Manage guides & surveys</li>
             <li>Track events & view results</li>
           </ol>
         </div>
